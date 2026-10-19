@@ -5,6 +5,7 @@ import React, { useState, useRef, useEffect } from "react";
 export const AudioPlayer: React.FC = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const manuallyMutedRef = useRef(false);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -12,25 +13,75 @@ export const AudioPlayer: React.FC = () => {
 
     audio.volume = 0.5;
 
+    // Handle loop fallback
     const handleEnded = () => {
+      if (manuallyMutedRef.current) return;
       audio.currentTime = 0;
       audio.play().catch(() => {});
     };
 
     audio.addEventListener("ended", handleEnded);
+
+    // 1. Attempt immediate autoplay when page opens
+    const startAudio = () => {
+      if (manuallyMutedRef.current) return;
+      const playPromise = audio.play();
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            setIsPlaying(true);
+          })
+          .catch(() => {
+            // 2. If browser autoplay policy blocks un-interacted sound,
+            // unlock and play immediately on the first touch/click/key
+            const unlockAudio = () => {
+              if (manuallyMutedRef.current) return;
+              audio
+                .play()
+                .then(() => {
+                  setIsPlaying(true);
+                  removeListeners();
+                })
+                .catch(() => {});
+            };
+
+            const events = ["click", "touchstart", "pointerdown", "keydown"];
+            const removeListeners = () => {
+              events.forEach((evt) => {
+                window.removeEventListener(evt, unlockAudio);
+              });
+            };
+
+            events.forEach((evt) => {
+              window.addEventListener(evt, unlockAudio, {
+                once: true,
+                passive: true,
+              });
+            });
+          });
+      }
+    };
+
+    startAudio();
+
     return () => {
       audio.removeEventListener("ended", handleEnded);
     };
   }, []);
 
-  const toggleMusic = () => {
+  const toggleMusic = (e: React.MouseEvent) => {
+    // Stop event bubbling so unlock listeners don't conflict
+    e.stopPropagation();
+
     const audio = audioRef.current;
     if (!audio) return;
 
     if (isPlaying) {
       audio.pause();
+      manuallyMutedRef.current = true;
       setIsPlaying(false);
     } else {
+      manuallyMutedRef.current = false;
       audio
         .play()
         .then(() => {
@@ -44,7 +95,14 @@ export const AudioPlayer: React.FC = () => {
 
   return (
     <div className="fixed bottom-4 left-4 z-50 select-none">
-      <audio ref={audioRef} src="/audio/bgm.mp3" preload="auto" loop />
+      <audio
+        ref={audioRef}
+        src="/audio/bgm.mp3"
+        preload="auto"
+        loop
+        autoPlay
+        playsInline
+      />
       <button
         onClick={toggleMusic}
         type="button"
