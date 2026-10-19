@@ -71,7 +71,7 @@ export const PokemonCard: React.FC<PokemonCardProps> = ({
 
       {/* 2. Image Frame & Sprite - Completely static */}
       <div
-        className="w-full flex items-center justify-center my-2 py-3 sm:py-5 rounded border-2 border-dashed border-slate-200"
+        className="w-full flex items-center justify-center my-2 py-3 sm:py-5 rounded border-2 border-solid border-slate-300"
         style={{ backgroundColor: pokemon.theme.bgSoft }}
       >
         <PokemonSprite
@@ -94,7 +94,7 @@ export const PokemonCard: React.FC<PokemonCardProps> = ({
       </div>
 
       {/* 4. Button & Arrow */}
-      <div className="mt-4 pt-3 border-t-2 border-dashed border-slate-200 w-full flex items-center justify-center">
+      <div className="mt-4 pt-3 border-t-2 border-solid border-slate-200 w-full flex items-center justify-center">
         <div
           className={`w-full py-2 px-3 text-center text-xs font-body font-extrabold uppercase tracking-wider
           border-2 border-[#1b3858] shadow-[3px_3px_0_0_#1b3858] transition-all duration-150 ease-out
