@@ -23,6 +23,21 @@ export const AudioPlayer: React.FC = () => {
     audio.addEventListener("ended", handleEnded);
 
     // 1. Attempt immediate autoplay when page opens
+    const events = ["click", "touchstart", "pointerdown", "keydown"];
+
+    const unlockAudio = () => {
+      if (manuallyMutedRef.current) return;
+      audio
+        .play()
+        .then(() => {
+          setIsPlaying(true);
+          events.forEach((evt) => {
+            document.removeEventListener(evt, unlockAudio, true);
+          });
+        })
+        .catch(() => {});
+    };
+
     const startAudio = () => {
       if (manuallyMutedRef.current) return;
       const playPromise = audio.play();
@@ -32,29 +47,11 @@ export const AudioPlayer: React.FC = () => {
             setIsPlaying(true);
           })
           .catch(() => {
-            // 2. If browser autoplay policy blocks un-interacted sound,
-            // unlock and play immediately on the first touch/click/key
-            const unlockAudio = () => {
-              if (manuallyMutedRef.current) return;
-              audio
-                .play()
-                .then(() => {
-                  setIsPlaying(true);
-                  removeListeners();
-                })
-                .catch(() => {});
-            };
-
-            const events = ["click", "touchstart", "pointerdown", "keydown"];
-            const removeListeners = () => {
-              events.forEach((evt) => {
-                window.removeEventListener(evt, unlockAudio);
-              });
-            };
-
+            // If browser autoplay policy blocks zero-interaction sound on new domains,
+            // unlock and play at the very first touch/click anywhere on screen
             events.forEach((evt) => {
-              window.addEventListener(evt, unlockAudio, {
-                once: true,
+              document.addEventListener(evt, unlockAudio, {
+                capture: true,
                 passive: true,
               });
             });
@@ -66,6 +63,9 @@ export const AudioPlayer: React.FC = () => {
 
     return () => {
       audio.removeEventListener("ended", handleEnded);
+      events.forEach((evt) => {
+        document.removeEventListener(evt, unlockAudio, true);
+      });
     };
   }, []);
 
